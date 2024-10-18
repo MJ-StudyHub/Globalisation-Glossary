@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashcards - Voice Answer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f5f5f5;
+        }
+        #initials {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 10px;
+            color: #555;
+        }
+        #flashcard {
+            background-color: white;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            width: 60%;
+            margin: 50px auto;
+            padding: 20px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+        }
+        h2 {
+            color: #333;
+        }
+        #definition {
+            color: #555;
+            visibility: hidden;
+        }
+        button {
+            padding: 10px 20px;
+            margin-top: 20px;
+            font-size: 16px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        #muteBtn {
+            background-color: #dc3545;
+            margin-left: 10px;
+        }
+        #muteBtn.muted {
+            background-color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="initials">MJ</div>
+    <div id="flashcard" onclick="revealAnswer()">
+        <h2 id="term">Glossary of key concepts: Globalisation Flash Cards</h2>
+        <p id="definition">Click "Next Card" to begin and click the card to reveal the answer.</p>
+    </div>
+    <button id="nextBtn" onclick="nextCard()">Next Card</button>
+    <button id="muteBtn" onclick="toggleMute()">Mute</button>
+
+    <script>
+        let selectedVoice = null;
+        let isMuted = false;  // Variable to track mute status
+        let isIntro = true;  // Variable to track if we are showing the introduction card
+
+        // Initialize the voices list
+        window.speechSynthesis.onvoiceschanged = () => {
+            const voices = window.speechSynthesis.getVoices();
+            selectedVoice = voices.find(voice => voice.name.includes('Google UK English Female')) ||
+                            voices.find(voice => voice.name.includes('Microsoft Zira Desktop')) ||
+                            voices.find(voice => voice.gender === 'female') || 
+                            voices[0]; // Default to the first available voice if no female voice is found
+        };
+
+        const flashcards = [
+            { term: "Autarky", definition: "Autarky refers to the condition of a country or particular region being economically self-sufficient, with no external trade required." },
+            { term: "Balance of Payments", definition: "The balance of payments is the monetary value of all transactions of a particular country with other countries measured over a certain period." },
+            { term: "Birth Rate", definition: "The birth rate is a statistical measure of the number of children born, usually expressed as the number of live births per 1,000 inhabitants per year." },
+            { term: "Business Cycle", definition: "The business cycle refers to the downward and upward fluctuations of the main economic aggregates that move in conjunction with each other." },
+            { term: "Commercialization of Agriculture", definition: "Commercialization of agriculture refers to peasants turning into farmers who produce mainly for distant markets." },
+            { term: "Convergence", definition: "Convergence occurs when two or more countries develop in such a way that they become similar in certain characteristics." },
+            { term: "Deflation", definition: "Deflation refers to the situation where the supply of goods and services exceeds demand, causing general price levels to drop." },
+            { term: "Deglobalization", definition: "Deglobalization is the conscious drive for a reversal of the globalization process." },
+            { term: "De-industrialization", definition: "De-industrialization refers to the decline of manufacturing in a particular country or region." },
+            { term: "Demographic Transition", definition: "The demographic transition is the shift from a regime with high mortality and birth rates to one with low rates." },
+            { term: "Depreciation", definition: "Depreciation is the loss of value of an asset or currency relative to another." },
+            { term: "Devaluation", definition: "Devaluation refers to the depreciation of currencies." },
+            { term: "Divergence", definition: "Divergence occurs when two or more countries develop in ways that increasingly differ." },
+            { term: "Ecological Footprint", definition: "The ecological footprint measures the pressure on resources by human activity." },
+            { term: "Economic Growth", definition: "Economic growth is the sustained increase in GDP, not necessarily implying growth in wealth." },
+            { term: "Economic Nationalism", definition: "Economic nationalism refers to policies aimed at reducing external influence to stimulate domestic economies." },
+            { term: "Economic Regionalism", definition: "Economic regionalism refers to cooperation between nation-states within a geographical region." },
+            { term: "Globalization", definition: "Globalization refers to economic progress through international collaborations." },
+            { term: "Glocalization", definition: "Glocalization is a form of globalization where local communities maintain part of their identity." },
+            { term: "Gold Standard", definition: "The Gold Standard was a monetary system where currency value was based on gold reserves." },
+            { term: "Great Divergence", definition: "The Great Divergence refers to Western Europe surpassing India and China economically." },
+            { term: "Gross Domestic Product (GDP)", definition: "GDP is the total value of goods and services produced by a country in a given period." },
+            { term: "Import Substitution Industrialization (ISI)", definition: "ISI is a government policy aimed at substituting foreign imports with domestic production." },
+            { term: "Inflation", definition: "Inflation refers to the increase in general price levels due to demand exceeding supply." },
+            { term: "Institutions", definition: "Institutions are norms and values that shape and constrain human behavior." },
+            { term: "Interest", definition: "Interest is the payment for capital received on borrowed money." },
+            { term: "Limited Liability Company", definition: "A limited liability company is a legal framework where participants are liable only for transferred shares." },
+            { term: "Marriage Fertility", definition: "Marriage fertility measures the relationship between the number of births and the number of marriages." },
+            { term: "Marriage Rate", definition: "The marriage rate expresses the relationship between the number of marriages and the total population." },
+            { term: "Mercantilism", definition: "Mercantilism is an economic system focused on maximizing national income through trade regulation." },
+            { term: "Middle Class", definition: "The middle class consists of the layers of society between the upper and lower classes." },
+            { term: "Migration", definition: "Migration is the displacement of individuals or groups, including internal and cross-border migration." },
+            { term: "Mortality Rate", definition: "The mortality rate measures the relationship between deaths and the total population." },
+            { term: "Organic Society", definition: "An organic society relies on organic materials and does not use fossil fuels extensively." },
+            { term: "Per Capita Income", definition: "Per capita income is income per head of the population during a given period." },
+            { term: "Population Pressure", definition: "Population pressure refers to the relationship between population size and available resources." },
+            { term: "Productivity", definition: "Productivity measures the relationship between production factors and output." },
+            { term: "Social Mobility", definition: "Social mobility refers to the elevation of individuals or groups on the societal ladder." },
+            { term: "Social Stratification", definition: "Social stratification is the grouping of society based on various criteria." },
+            { term: "Social Structure", definition: "Social structure refers to the stable network of relationships between people." },
+            { term: "Social Question", definition: "The social question refers to the living standards of industrial workers in the 19th century." },
+            { term: "Trade Balance", definition: "The trade balance includes the monetary value of all goods and services that enter and leave a country." },
+            { term: "Transition", definition: "A transition is a fundamental shift from one stage to another." }
+        ];
+
+        function showIntroCard() {
+            document.getElementById("term").textContent = "Glossary of key concepts: Globalisation Flash Cards";
+            document.getElementById("definition").textContent = "Click 'Next Card' to begin and click the card to reveal the answer.";
+            document.getElementById("definition").style.visibility = 'visible'; // Ensure the intro text is visible
+        }
+
+        function showRandomCard() {
+            const randomIndex = Math.floor(Math.random() * flashcards.length);
+            document.getElementById("term").textContent = flashcards[randomIndex].term;
+            document.getElementById("definition").textContent = flashcards[randomIndex].definition;
+            document.getElementById("definition").style.visibility = 'hidden'; // Hide definition until clicked
+        }
+
+        function revealAnswer() {
+            if (isIntro) {
+                startFlashcards();
+            } else {
+                const definition = document.getElementById("definition");
+                definition.style.visibility = 'visible'; // Show definition
+                if (!isMuted && selectedVoice) {
+                    const utterance = new SpeechSynthesisUtterance(definition.textContent);
+                    utterance.voice = selectedVoice;
+                    window.speechSynthesis.cancel(); // Stop previous speech
+                    window.speechSynthesis.speak(utterance); // Speak the answer
+                }
+            }
+        }
+
+        function startFlashcards() {
+            isIntro = false; // Hide intro after first click
+            showRandomCard();
+        }
+
+        function nextCard() {
+            if (!isIntro) {
+                window.speechSynthesis.cancel(); // Stop any ongoing speech
+                showRandomCard();
+            } else {
+                startFlashcards(); // Start flashcards when intro is shown
+            }
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const muteBtn = document.getElementById("muteBtn");
+            muteBtn.classList.toggle("muted");
+            muteBtn.textContent = isMuted ? "Unmute" : "Mute";
+        }
+
+        // Initialize the first card
+        showIntroCard();
+    </script>
+</body>
+</html>
